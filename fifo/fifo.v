@@ -1,51 +1,35 @@
-module fifo (
+module fifo #(parameter
+    WIDTH = 2
+    )
+(
     input clk,
     input rst,
-
-    input in_pvld,
-    input in_pd,
-    output in_prdy,
-
-    output o_pvld,
-    output o_pd,
-    input o_prdy
+    input wr_e,
+    input [WIDTH-1:0] wr_data,
+    input rd_e,
+    output reg [WIDTH-1:0] rd_data,
+    output reg busy
 );
 
-    assign o_pvld = in_pvld;
-    assign o_pd = in_pd;
-    assign in_prdy = o_prdy;
+    reg [WIDTH-1:0] p1_data, p1_data_nxt;
+    reg busy_nxt;
 
-endmodule
-
-
-module test_fifo();
-    reg clk;
-    initial begin
-//        $dumpfile("test.vcd");
-//        $dumpvars(0,test_fifo);
-        clk = 1'b0;
-        #1
-        clk = !clk;
-        #1
-        clk = !clk;
-        #1
-        clk = !clk;
-        #1
-        clk = !clk;
-        #1
-        clk = !clk;
+    always @(posedge clk) begin
+        if (rst) begin
+            busy <= 1'b0;
+        end else begin
+            p1_data <= wr_e ? wr_data : p1_data;
+            busy <= busy_nxt;
+        end
     end
 
-    fifo fifo_ins(
-        .clk(clk),
-        .rst(1'b0),
-        .in_pvld(1'b1),
-        .in_pd(1'b1),
-        .in_prdy(),
-        .o_pvld(),
-        .o_pd(),
-        .o_prdy(1'b0)
-    );
-endmodule
+    always @(*) begin
+        if (busy)
+            busy_nxt = (rd_e && wr_e) ? 1'b1 : rd_e ? 1'b0 : busy;
+        else
+            busy_nxt = (rd_e && wr_e) ? 1'b0 : wr_e ? 1'b1 : busy;
+        rd_data = rd_e ? p1_data : rd_data;
+    end
 
+endmodule
 
